@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="zkT Notes">
 <meta name="theme-color" content="#0d1016">
@@ -23,6 +23,8 @@
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 html,body{height:100%}
+html,body,button{touch-action:manipulation}
+
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 .app{height:100%;display:flex;flex-direction:column}
 
@@ -228,6 +230,16 @@ async function wake() { try { if ('wakeLock' in navigator && document.visibility
 document.addEventListener('visibilitychange', wake);
 document.addEventListener('click', () => { if (!lock) wake(); }, { once: true });
 wake();
+
+// Stop iOS double-tap and pinch zoom while tapping quickly
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+['gesturestart', 'gesturechange'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+let lastTouch = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTouch < 350) { e.preventDefault(); e.target.closest('button')?.click(); }
+  lastTouch = now;
+}, { passive: false });
 
 render();
 window.addEventListener('resize', fit);
