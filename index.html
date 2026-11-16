@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="zkT Notes">
+<meta name="theme-color" content="#0d1016">
+<style>*,*::before,*::after{box-sizing:border-box}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);height:100%;background:#0d1016}body{margin:0}[hidden]{display:none!important}</style>
+<title>zkTransformer Cue Notes</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+</head><body>
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#0d1016; --panel:#151a23; --line:#232a37; --ink:#eef1f6; --dim:#6c7689; --past:#4a5263;
+  --cue:#f3b443; --cue-ink:#1b1406; --cue-soft:rgba(243,180,67,.14);
+  --slide:#7cc4ff; --slide-ink:#05182a; --slide-soft:rgba(124,196,255,.14);
+  --fs:26px;
+  --sans:"Atkinson Hyperlegible",-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+.app{height:100%;display:flex;flex-direction:column}
+
+/* Top bar */
+.top{display:flex;align-items:center;gap:12px;padding:10px 16px 8px;border-bottom:1px solid var(--line);background:var(--bg)}
+.slideno{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.02em;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-variant-numeric:tabular-nums;white-space:nowrap}
+.slideno span{color:var(--dim)}
+.ttl{flex:1;min-width:0;font-size:14px;line-height:1.25;color:var(--dim);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.iconbtn{flex:none;width:38px;height:38px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:700 15px var(--sans);cursor:pointer}
+.progress{height:3px;background:var(--line)}
+.progress i{display:block;height:100%;width:0;background:var(--slide);transition:width .25s}
+.clicks{display:flex;gap:5px;padding:10px 16px 0;align-items:center;min-height:18px}
+.clicks b{width:18px;height:6px;border-radius:3px;background:var(--line);transition:background .2s}
+.clicks b.done{background:var(--past)}
+.clicks b.on{background:var(--cue)}
+.clicks small{margin-left:6px;font:500 12px var(--mono);color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+
+/* Notes: one cue at a time, auto-fit, never scrolls */
+.notes{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:12px 16px 10px;gap:10px}
+.cuebox{flex:1;min-height:0;overflow:hidden;position:relative}
+.text{font-size:var(--fs);line-height:1.36;color:var(--ink);font-weight:400;white-space:pre-wrap;overflow-wrap:break-word;max-width:40em;margin:0 auto;letter-spacing:.005em}
+.text .lead{color:var(--dim)}
+.clickonly{display:flex;flex-direction:column;align-items:flex-start;gap:12px;color:var(--dim);font-size:20px}
+.pill{display:inline-block;font:600 15px/1 var(--mono);padding:8px 12px;border-radius:99px;background:var(--cue);color:var(--cue-ink);letter-spacing:.06em;animation:pulse 1s ease-in-out infinite}
+.empty-note{color:var(--dim);font-style:italic;font-size:20px}
+.backup{display:inline-block;font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:3px 7px;margin-bottom:8px}
+.upnext{flex:none;border-top:1px dashed var(--line);padding-top:8px;font-size:16px;line-height:1.35;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.upnext b{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-right:6px}
+.upnext.cue b{color:var(--cue)} .upnext.slide b{color:var(--slide)}
+@keyframes pulse{50%{box-shadow:0 0 0 6px var(--cue-soft)}}
+
+/* Bottom controls */
+.bottom{border-top:1px solid var(--line);background:var(--bg);padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:1fr 3fr;gap:10px}
+.btn{border:0;border-radius:16px;font-family:var(--sans);cursor:pointer;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:transform .08s,background .2s}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.back{background:var(--panel);color:var(--ink);border:1px solid var(--line);font-size:15px}
+.next{font-size:24px;font-weight:700}
+.next small{font:500 13px var(--mono);letter-spacing:.05em;opacity:.75;text-transform:uppercase}
+.next.kind-cue{background:var(--cue);color:var(--cue-ink)}
+.next.kind-slide{background:var(--slide);color:var(--slide-ink)}
+.next.kind-end{background:var(--panel);color:var(--dim)}
+.btn:disabled{opacity:.4}
+
+/* Drawer */
+.sheet{position:fixed;inset:0;background:rgba(5,7,10,.6);display:flex;align-items:flex-end;z-index:5}
+.panel{background:var(--panel);width:100%;max-height:80%;border-radius:18px 18px 0 0;border-top:1px solid var(--line);display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px)}
+.panel header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.panel h2{margin:0;font-size:17px}
+.sizes{display:flex;gap:8px;align-items:center;font:500 13px var(--mono);color:var(--dim)}
+.list{overflow-y:auto;padding:6px 8px 12px}
+.row{display:flex;gap:12px;align-items:baseline;width:100%;text-align:left;background:none;border:0;color:var(--ink);padding:11px 8px;border-radius:10px;font:15px/1.3 var(--sans);cursor:pointer}
+.row.on{background:var(--slide-soft)}
+.row .n{font:600 13px var(--mono);color:var(--dim);width:2.2em;flex:none;font-variant-numeric:tabular-nums}
+.row .c{margin-left:auto;font:500 12px var(--mono);color:var(--cue);flex:none}
+.row .t{min-width:0}
+.hint{padding:0 16px 10px;font-size:13px;color:var(--dim)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+@media (min-width:700px){.bottom{grid-template-columns:1fr 2fr;max-width:760px;margin:0 auto;width:100%;box-sizing:border-box}}
+</style>
+
+<div class="app">
+  <div class="top">
+    <button class="slideno" id="slideBtn" aria-label="Jump to slide"><b id="sn">1</b><span>/<i id="st" style="font-style:normal">1</i></span></button>
+    <div class="ttl" id="ttl"></div>
+    <button class="iconbtn" id="menuBtn" aria-label="All slides">☰</button>
+  </div>
+  <div class="progress"><i id="prog"></i></div>
+  <div class="clicks" id="clicks"></div>
+  <div class="notes" id="notes"><div class="cuebox" id="cuebox"><div class="text" id="text"></div></div><div class="upnext" id="upnext"></div></div>
+  <div class="bottom">
+    <button class="btn back" id="backBtn">‹ Back</button>
+    <button class="btn next" id="nextBtn"><span id="nextLbl">Next</span><small id="nextSub"></small></button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="panel" role="dialog" aria-label="Slides">
+    <header>
+      <h2>Slides</h2>
+      </header>
+    <div class="hint">Tap a slide to jump there. Amber dots show how many @ clicks it has.</div>
+    <div class="list" id="list"></div>
+  </div>
+</div>
+
+<script>
+const SLIDES = [{"t": "zkTransformer: Scalable Zero-Knowledge Proofs for LLM Inference via Einsum Arithmetization and Structured Exponentiation Lookups", "n": "Hello everyone. My name is Bing-Jyue Chen. I’m a fourth-year PhD student advised by Professor Daniel Kang at UIUC.\nToday, I’ll present zkTransformer, which makes zero-knowledge proofs for LLM inference easier to build and faster to generate."}, {"t": "Are we getting the model advertised?", "n": "When we pay for an LLM API, are we actually getting the advertised model?\n“Real Money, Fake Models,” also presented at CCS this year, found that some third-party services served models different from those they advertised. Users were even relying on these services for published research."}, {"t": "Even benchmark results can refer to a different model variant from the one users receive", "n": "The same issue arises with benchmarks.\nFor instance, LMArena revealed that the variant of Llama 4 Maverick evaluated on its platform is optimized for human preference. It is different from Meta’s publicly released model. Meta did not initially disclose this distinction."}, {"t": "Users need verification, but providers need confidentiality", "n": "This matters when users rely on a model’s evaluated capabilities, for example, when deploying code it generates.\nBut providers also need to keep their model weights private.\nSo we want to verify that the selected model produced an output while preserving the confidentiality of its weights."}, {"t": "Zero-knowledge proofs make this feasible", "n": "Zero-knowledge proofs let us do this.\nThe provider first publishes a cryptographic commitment to its model. You can think of this commitment as a binding identifier for the weights.\nFor each input, the provider returns an output and a proof. The user can then verify that the output results from running the specified inference computation with the committed model, without learning the weights."}, {"t": "The translation gap between ZKP and LLM", "n": "Now that we know what a zkML proof is and why it matters, the next question is how to construct one for LLMs.\nLLMs operate on tensors, using operations such as matrix multiplication, attention, and softmax. @Cryptographic proof systems work with algebraic constraints, polynomial identities, and lookups. These are very different representations.\nWe need a translation between them that preserves the computation and remains efficient at LLM scale."}, {"t": "It brings three bottlenecks thatmake zkML difficult to deploy", "n": "This translation gap creates three bottlenecks.\nThe first is usability. Developers often need to manually design cryptographic representations of model operations. When the model changes, they may need to rebuild these representations using low-level gadgets, such as addition and multiplication gates.\n@\nThe second is reliability. An incorrect translation can produce an invalid proof, causing even an honest prover to fail verification.\n@\nThe third is prover performance. Nonlinear operations can require expensive lookup arguments that dominate proving time."}, {"t": "Our solution: zkTransformer", "n": "In zkTransformer, we use two main techniques, EinSumcheck and StructuredExp, to address these three bottlenecks together.\n@\nLet’s start with EinSumcheck."}, {"t": "MatMul protocol [Thaler 2013]", "n": "Before we dive into our technique, let’s look at a simple example: matrix multiplication.\nIn einsum notation, we can write “ij, jk to ik” to represent this matrix multiplication, where i, j, and k are matrix indices.\n@\nIn 2013, Justin Thaler proposed an elegant construction that represents the matrices A, B, and C as multilinear polynomials. At the Boolean points corresponding to matrix indices, these polynomials evaluate to the original matrix entries.\n@\nThe two sides of this equation define the same polynomial. So, when the verifier sends random prime field points r and r-prime, the prover can use sumcheck to prove the relation at those points."}, {"t": "zkGPT (USENIX Sec’25)’s attempt", "n": "In 2025, zkGPT tried to generalize this matrix multiplication protocol to support batched matrix multiplication in LLMs.\nEquation 8 in their paper follows a similar derivation. They represent tensors A, B, and C as multilinear polynomials and argue that the two sides define the same polynomial, so sumcheck can prove the relation."}, {"t": "zkGPT (USENIX Sec’25)’s attempt", "n": "Unfortunately, this derivation is incorrect.\nTo see why, recall that A, B, and C are multilinear polynomials interpolated from the original tensors. Each has degree at most one in each variable.\nOn the left-hand side, the batch variables r_b appear in both factors, so their degree can be two. On the right-hand side, their degree of r_b is at most one.\nThe two sides therefore do not define the same polynomial. As a result, even an honest prover cannot reliably prove this equation."}, {"t": "zkLLM (CCS’24) made a similar mistake", "n": "You might think this is an isolated mistake in zkGPT, but zkLLM, published in 2024, made a similar mistake for elementwise multiplication.\nThese examples show that we need to address developer usability and proof-system reliability together."}, {"t": "", "n": "Now let’s see how EinSumcheck works.\nIn einsum notation, indices that appear in the operands but not in the output are summation indices. Indices that appear in the output are free indices.\nWe further divide free indices into two types. Those that appear only once across the operands are degree-one free indices. Those that appear more than once are high-degree free indices.\n@\nWe start with the output claim @ and substitute the verifier’s random values for the degree-one free indices.\nBoth sides now have degree at most one in each of the variables in r_i and r_k.\n@\nFor the high-degree free index, we insert an identity polynomial. On Boolean inputs, it evaluates to one when the two index vectors match and zero otherwise.\nWith this polynomial and a sum over the batch index, both sides are now multilinear in r_b, r_i, and r_k.\n@\nFinally, we include the original summation index under the sum. This gives us a single sumcheck instance."}, {"t": "", "n": "With EinSumcheck compiler, we can prove a broad range of linear tensor operations, @ including batched matrix multiplication and elementwise multiplication, using a single sumcheck instance for each einsum expression."}, {"t": "The benefits of EinSumcheck", "n": "Moreover, @ developers can now automatically transform an einsum equation into a correct sumcheck instance.\nThey no longer need to manually build proofs for these operations from low-level addition and multiplication gates, which could be time-consuming and error-prone."}, {"t": "How about prover performance for nonlinearities?", "n": "EinSumcheck addresses the first two challenges, what about prover performance for nonlinear operations?"}, {"t": "Nonlinearities can be proved by lookups", "n": "Prior work has shown that nonlinear operations can be proved using range and exponentiation lookups.\nA range table has a structured polynomial representation that can be evaluated in O(log N) time, where N is the table size. This avoids a linear-time scan of the table for that evaluation.\n@\nExponentiation tables, however, have generally been treated as unstructured, making their lookups expensive to prove."}, {"t": "LLM nonlinearities are mostly based on Exp(x)", "n": "In LLMs, most nonlinear operations, @ such as softmax @ @ and GeLU, rely on exponentiation."}, {"t": "", "n": "In zkTransformer, we introduce StructuredExp. @ It decomposes x into k times the natural logarithm of two, plus a small remainder, delta. This lets us write exp(x) as two to the power of k times exp(delta).\n@\nThe powers-of-two table has a structured polynomial representation. \n@ \nAnd because delta lies within a small range, we can accurately approximate exp(delta) using a low-degree Taylor polynomial.\nPlease see our paper for the detailed analysis.\n@\nTogether, these properties let us prove exponentiation using structured polynomials, with proving costs that grow sublinearly with the table size."}, {"t": "Experimental settings", "n": "We conducted experiments to evaluate the effectiveness of zkTransformer. Here is our experimental setup."}, {"t": "Comparison with prior work", "n": "For single-token generation with nanoGPT, zkTransformer is over 80 times faster than EZKL at generating proofs. @\nFor multi-token generation with GPT-2, it is more than 10 times faster than the state-of-the-art system zkGPT."}, {"t": "Ablation studies (GPT-2)", "n": "We also conducted ablation studies to measure the benefits of our techniques.\nFirst, we compared EinSumcheck with a traditional GKR arithmetization that represents these tensor operations using addition and multiplication gates. EinSumcheck provides a 1.6 times speedup in proof generation. @\nTo evaluate our structured lookups, we replaced them with the unstructured LogUp protocol used in zkGPT’s implementation. Using structured lookups to prove the nonlinear operations provides at least a 5 times speedup."}, {"t": "Prover time amortized per token (GPT-2)", "n": "We also studied how amortized proving time per token changes with sequence length. @\nAt a sequence length of 32, fixed costs, such as model-weight openings, are spread over relatively few tokens. @\nFor sequence lengths from 64 to 256, proving time stays below two seconds per token. @ It then rises at longer sequence lengths as attention becomes more expensive and memory pressure grows.\nNote that 1,024 is the maximum sequence length supported by GPT-2, rather than a limit in zkTransformer."}, {"t": "", "n": "Let me conclude with the main takeaways.\nFirst, zkML verifies AI execution. It can certify that a particular output came from a particular model on a particular input. @\nSecond, we identified three bottlenecks: developer usability, proof-system reliability, and prover performance. @\nTo address usability and reliability, we developed EinSumcheck, which automatically compiles an einsum expression into a sumcheck instance. @\nTo improve prover performance for LLM nonlinearities, we developed StructuredExp, which proves exponentiation using structured lookups. @\nFinally, our experiments show that zkTransformer provides at least a tenfold speedup over prior state-of-the-art sumcheck-based zkML systems.\nThank you for your attention. I’m happy to take questions. Please also feel free to contact me afterward."}];
+const BACKUP_FROM = 25; // slides after the "Thank you" slide
+
+// Each "@" is one click. Segment k is what you say after k clicks on that slide.
+const deck = SLIDES.map((s, i) => ({ n: i + 1, title: s.t, segs: s.n ? s.n.split('@') : [] }));
+const steps = [];
+deck.forEach((s, si) => { const k = Math.max(1, s.segs.length); for (let j = 0; j < k; j++) steps.push([si, j]); });
+
+const $ = id => document.getElementById(id);
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+                set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+
+let pos = Math.min(store.get('zkt-pos', 0), steps.length - 1);
+let renderedSlide = -1;
+
+const MAX_FS = 40, MIN_FS = 14;
+// Largest font size at which the whole cue fits the box with no scrolling
+function fit() {
+  const box = $('cuebox'), t = $('text');
+  let lo = MIN_FS, hi = MAX_FS;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    t.style.fontSize = mid + 'px';
+    if (t.scrollHeight <= box.clientHeight) lo = mid; else hi = mid - 1;
+  }
+  t.style.fontSize = lo + 'px';
+}
+
+const endsSentence = s => /[.!?:”"’)]\s*$/.test(s.trim()) || !s.trim();
+
+function render() {
+  const [si, j] = steps[pos], s = deck[si];
+  $('ttl').textContent = s.title || (si + 1 >= BACKUP_FROM ? 'Backup' : 'Untitled slide');
+  $('sn').textContent = s.n; $('st').textContent = deck.length;
+
+  const t = $('text'); t.innerHTML = '';
+  if (si + 1 >= BACKUP_FROM) { const b = document.createElement('div'); b.className = 'backup'; b.textContent = 'Backup slide'; t.appendChild(b); }
+  const txt = (s.segs[j] || '').trim();
+  if (!s.segs.length) {
+    const e = document.createElement('div'); e.className = 'empty-note'; e.textContent = 'No notes on this slide.'; t.appendChild(e);
+  } else if (!txt) {
+    const e = document.createElement('div'); e.className = 'clickonly';
+    e.innerHTML = '<span class="pill">CLICK</span><span>Click again. No new words here.</span>'; t.appendChild(e);
+  } else {
+    // Continue mid-sentence cues with a dim ellipsis so it reads naturally
+    let k = j - 1; while (k >= 0 && !s.segs[k].trim()) k--;
+    if (k >= 0 && !endsSentence(s.segs[k])) { const l = document.createElement('span'); l.className = 'lead'; l.textContent = '… '; t.appendChild(l); }
+    t.appendChild(document.createTextNode(txt));
+  }
+
+  // Click dots for this slide
+  const c = $('clicks'); c.innerHTML = '';
+  const n = s.segs.length - 1;
+  for (let k = 1; k <= n; k++) { const b = document.createElement('b'); b.className = k < j ? 'done' : k === j ? 'on' : ''; c.appendChild(b); }
+  if (n > 0) { const sm = document.createElement('small'); sm.textContent = `click ${j}/${n}`; c.appendChild(sm); }
+
+  // Up-next preview + next button tells you what the next tap does
+  const nb = $('nextBtn'), up = $('upnext');
+  if (pos === steps.length - 1) {
+    nb.className = 'btn next kind-end'; $('nextLbl').textContent = 'End'; $('nextSub').textContent = 'last slide'; nb.disabled = true;
+    up.className = 'upnext'; up.textContent = '';
+  } else {
+    nb.disabled = false;
+    const [nsi, nj] = steps[pos + 1], ns = deck[nsi];
+    const ntxt = (ns.segs[nj] || '').trim() || (ns.segs.length ? 'Click (no new words)' : 'No notes');
+    up.innerHTML = '<b></b><span></span>';
+    up.querySelector('span').textContent = ntxt;
+    if (nsi === si) {
+      nb.className = 'btn next kind-cue'; $('nextLbl').textContent = 'Click ▸'; $('nextSub').textContent = `@ ${j + 1} of ${n}`;
+      up.className = 'upnext cue'; up.querySelector('b').textContent = 'After click';
+    } else {
+      nb.className = 'btn next kind-slide'; $('nextLbl').textContent = 'Next slide ›'; $('nextSub').textContent = `to slide ${nsi + 1}`;
+      up.className = 'upnext slide'; up.querySelector('b').textContent = `Slide ${nsi + 1}`;
+    }
+  }
+  $('backBtn').disabled = pos === 0;
+  $('prog').style.width = (si / (deck.length - 1) * 100) + '%';
+  fit();
+  store.set('zkt-pos', pos);
+}
+
+function go(d) { const p = Math.max(0, Math.min(steps.length - 1, pos + d)); if (p !== pos) { pos = p; render(); } }
+function jumpSlide(si) { pos = steps.findIndex(s => s[0] === si); closeSheet(); render(); }
+
+$('nextBtn').addEventListener('click', () => go(1));
+$('backBtn').addEventListener('click', () => go(-1));
+document.addEventListener('keydown', e => {
+  if (!$('sheet').hidden) { if (e.key === 'Escape') closeSheet(); return; }
+  if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); go(1); }
+  if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); go(-1); }
+});
+
+function openSheet() {
+  const L = $('list'); L.innerHTML = '';
+  const cs = steps[pos][0];
+  deck.forEach((s, si) => {
+    const b = document.createElement('button'); b.className = 'row' + (si === cs ? ' on' : '');
+    const n = Math.max(0, s.segs.length - 1);
+    b.innerHTML = `<span class="n">${s.n}</span><span class="t"></span><span class="c">${'•'.repeat(n)}</span>`;
+    b.querySelector('.t').textContent = s.title || (si + 1 >= BACKUP_FROM ? 'Backup' : (s.segs[0] || '').trim().slice(0, 50) + '…');
+    b.addEventListener('click', () => jumpSlide(si));
+    L.appendChild(b);
+  });
+  $('sheet').hidden = false;
+  L.querySelector('.on')?.scrollIntoView({ block: 'center' });
+}
+function closeSheet() { $('sheet').hidden = true; }
+$('slideBtn').addEventListener('click', openSheet);
+$('menuBtn').addEventListener('click', openSheet);
+$('sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+
+// Keep the screen awake while presenting, where allowed
+let lock = null;
+async function wake() { try { if ('wakeLock' in navigator && document.visibilityState === 'visible') lock = await navigator.wakeLock.request('screen'); } catch {} }
+document.addEventListener('visibilitychange', wake);
+document.addEventListener('click', () => { if (!lock) wake(); }, { once: true });
+wake();
+
+render();
+window.addEventListener('resize', fit);
+document.fonts?.ready.then(fit);
+</script>
+
+</body></html>
